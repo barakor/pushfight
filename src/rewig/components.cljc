@@ -23,13 +23,12 @@
          reverse?      (or reverse? false)
 
          display       (name (or display :flex))
-         align         (name (or align :flex-start))
-         content-align (name (or content-align :flex-start))
+         align         (name (or align :center))
+         content-align (name (or content-align :center))
          wrap          (name (or wrap :nowrap))
          direction     (str (name (or direction :row)) (when reverse? "-reverse"))
 
-         css           (merge css
-                              (when size (size-map size))
+         css           (merge (when size (size-map size))
                               (when margin (named-sides-map "margin" margin))
                               (when padding (named-sides-map "padding" padding))
 
@@ -37,7 +36,8 @@
                                :align-items align
                                :justify-content content-align
                                :flex-wrap wrap
-                               :flex-direction direction})
+                               :flex-direction direction}
+                              css)
 
          props (assoc attrs :style (merge (:style attrs) css))
 
@@ -161,3 +161,15 @@
             :width size
             :height size
             :animation "spin 2s linear infinite"}}])
+
+
+(defn radio-component [available-options selected-option click! {:keys [print! css] :or {print! #(get % "name")}}]
+  [row {:css css}
+   (for [option available-options]
+     [box {}
+      [[button
+        {:type :primary
+         :not-selected? (not (= selected-option option))
+         :click! #(click! option)}
+        (print! option)]
+       [gap :size theme/size-medium]]])])

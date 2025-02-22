@@ -1,8 +1,9 @@
 (ns app.web
   (:require
-   [reagent.core :as r :refer [with-let]]
+   [reagent.core :as r :refer [atom with-let]]
    [reagent.dom :as rdom]
-   [rewig.components :refer [box row column gap button]]
+   [rewig.components :refer [box row column gap button radio-component]]
+   [rewig.util :refer [apply-alpha]]
    [pushfight.core :as pf]
    [rewig.theme.gruvbox :as theme]
    [clojure.string :as string]))
@@ -32,7 +33,7 @@
                            :else                theme/light-gray)
         border-color (cond
                        cell-background theme/primary
-                       
+
                        :else           "#00000000")]
 
     [box {:css {:background-color background-color
@@ -255,7 +256,8 @@
       [gap :size 10]]]))
 
 (defn app []
-  (with-let [game-lifecycle-stage* (r/atom :game)
+  (with-let [game-lifecycle-stage* (r/atom :placement)
+             page* (atom :start-menu)
              board* (r/atom pf/sample-board)
              initial-board* (r/atom nil)
 
@@ -271,17 +273,30 @@
              place-pieces! #(do (reset! board* (pf/make-standard-board))
                                 (reset! game-lifecycle-stage* :placement))
 
-             game-over!    #(reset! game-lifecycle-stage* :start-menu)]
+             game-over!    #(reset! page* :start-menu)]
 
-    (let [k (atom 0)]
-      [box {:css {:background-color theme/background
-                  :height "100%"}
-            :size "100%"}
-       [[gap :size "35%"]
-        (case @game-lifecycle-stage*
-          :start-menu (start-menu board* initial-board* start-game! restart-game! default-game! place-pieces!)
-          :placement (place-pieces board* start-game!)
-          :game (game board* game-over!))]])))
+    (let [page @page*]
+      [column {:css {:background-color theme/background
+                     :z-index 3
+                     ; :height "100%"
+                     ; :width "100"
+                     :position :fixed}
+               :size :100%}
+       [[radio-component [:start-menu] page (fn [v] (swap! page* #(if (= v %) nil v))) {:print! name :css {:z-index 2}}]
+        [gap :size theme/size-medium]
+        [row {:size "100%"}
+         [(case page
+            :start-menu
+            [box {:padding "0.5%"
+                  :css {:z-index 9999
+                        :position :fixed
+                        :background-color (apply-alpha theme/bg4 "75%")}}
+             [start-menu board* initial-board* start-game! restart-game! default-game! place-pieces!]]
+            [:<>])
+          ; [gap :size theme/size-medium]
+          (case @game-lifecycle-stage*
+            :placement [place-pieces board* start-game!]
+            :game [game board* game-over!])]]]])))
 
 (defn ^:export main []
   (rdom/render [app]

@@ -1,4 +1,5 @@
-(ns rewig.util)
+(ns rewig.util
+  (:require [clojure.string :as string]))
 
 (defn map-map [key-fn val-fn hashmap]
   (->> hashmap
@@ -41,3 +42,36 @@
 
 (defn named-sides-map [sides-name m]
   (map-keys #(keyword (str sides-name "-" (name %))) (sides-map m)))
+
+(defn to-hex [n]
+  (let [n (int n)]
+    #?(:clj  (format "%x" n)
+       :cljs (.toUpperCase (.toString n 16)))))
+
+(defn apply-alpha [color alpha]
+  (let [hex-alpha (cond
+                    (= 0 alpha) ""
+                    (and (number? alpha)
+                         (> alpha 1)) (to-hex alpha)
+                    (and (number? alpha)
+                         (< alpha 1)) (to-hex (* alpha 255))
+                    (and (string? alpha)
+                         (string/ends-with? alpha "%")) (-> alpha
+                                                            (string/split #"%")
+                                                            (first)
+                                                            (long)
+                                                            (/ 100)
+                                                            (* 255)
+                                                            (to-hex)))]
+
+    (cond
+      (or (= 0 alpha) (and (not (number? alpha)) (empty? alpha))) color
+      (and (string? color)
+           (string/starts-with? color "#")
+           (= 7 (count color))) (str color hex-alpha)
+      (and (string? color)
+           (string/starts-with? color "#")
+           (> (count color) 7)) (str (string/join "" (take 7 color)) hex-alpha))))
+      ; (sequential? color) (conj (vec color) alpha)))
+
+
